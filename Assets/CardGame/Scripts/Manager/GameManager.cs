@@ -2,13 +2,30 @@ using UnityEngine;
 
 public class GameManager : Singleton<GameManager>
 {
-    public string webSocketUrl = string.Empty;
+    public string endPointUrl = string.Empty;
     public bool isDebug = false;
+    public string fileName = string.Empty;
+    private void Start()
+    {
+        string savedPhone = LocalStorageManager.Load();
+
+        if (savedPhone != null)
+        {
+            Debug.Log(savedPhone);
+            ManageCanvas.Instance.ToggleVisiablityOfCanvasGroup(CanvasType.Lobby);
+        }
+        else
+        {
+            ManageCanvas.Instance.ToggleVisiablityOfCanvasGroup(CanvasType.Register);
+        }
+    }
+
+    [ContextMenu("Clear Local Storage")]
+    public void ClearLocalStorage()
+    {
+        LocalStorageManager.Delete();
+    }
 }
-
-
-
-
 
 public class MyDebug
 {
