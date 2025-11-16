@@ -5,13 +5,22 @@ public class GameManager : Singleton<GameManager>
     public string endPointUrl = string.Empty;
     public bool isDebug = false;
     public string fileName = string.Empty;
+
+    public string currentPlayerNumber = string.Empty;
+
+    public string CurrentPlayerNumber
+    {
+        get => currentPlayerNumber;
+        set => currentPlayerNumber = value == null ? string.Empty : value;
+    }
+
     private void Start()
     {
         string savedPhone = LocalStorageManager.Load();
 
         if (savedPhone != null)
         {
-            Debug.Log(savedPhone);
+            CurrentPlayerNumber = savedPhone;
             ManageCanvas.Instance.ToggleVisiablityOfCanvasGroup(CanvasType.Lobby);
         }
         else

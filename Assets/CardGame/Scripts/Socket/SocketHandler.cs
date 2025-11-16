@@ -1,8 +1,9 @@
-﻿using BestHTTP.SocketIO;
+﻿using BestHTTP.JSON;
+using BestHTTP.SocketIO;
+using SimpleJSON;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using BestHTTP.JSON;
 
 public class SocketHandler : Singleton<SocketHandler>
 {
@@ -37,7 +38,10 @@ public class SocketHandler : Singleton<SocketHandler>
         Socket.On(SocketIOEventTypes.Error, OnErrorReceived);
 
         // Custom events
-        Socket.On("welcome", OnMessageReceived);
+        Socket.On("MessageToClient", OnMessageReceived);
+        Socket.On("room_updated", OnMessageReceived);
+        Socket.On("turn_timer_tick", TurnTimerTick);
+        Socket.On("initial_deck", InitDeck);
 
         socketManager.Open();
     }
@@ -58,7 +62,18 @@ public class SocketHandler : Singleton<SocketHandler>
     {
         MyDebug.LogError("⚠ Socket Error: " + args[0]);
     }
-
+    private void InitDeck(Socket socket, Packet packet, object[] args)
+    {
+        var data = args[0] as IDictionary<string, object>;
+        Debug.Log("Event Type Init Deck!!! " + data);
+    }
+    private void TurnTimerTick(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        TurnInfoData turnInfoData = JsonUtility.FromJson<TurnInfoData>(json);
+        EventBus.Invoke<TurnInfoData>(GameEvents.TICK_TIMER_DATA, turnInfoData);
+    }
     private void OnMessageReceived(Socket socket, Packet packet, object[] args)
     {
         var data = args[0] as IDictionary<string, object>;
@@ -68,10 +83,7 @@ public class SocketHandler : Singleton<SocketHandler>
         EMIT_EVENT_TYPE type = (EMIT_EVENT_TYPE)Enum.Parse(typeof(EMIT_EVENT_TYPE), typeStr);
 
         string rawPayload = Json.Encode(data["payload"]);
-
-        Debug.Log("Received Type: " + type);
-        Debug.Log("Payload JSON: " + rawPayload);
-
+        Debug.Log("Event Type!!!" + typeStr);
         RouteMessage(type, rawPayload);
     }
 
@@ -82,6 +94,11 @@ public class SocketHandler : Singleton<SocketHandler>
             case EMIT_EVENT_TYPE.WelcomeMessage:
                 WelcomToGame player = JsonUtility.FromJson<WelcomToGame>(json);
                 MyDebug.Log(player.msg);
+                break;
+            case EMIT_EVENT_TYPE.room_updated:
+                MyDebug.LogGreen(type + "...ROOM UPDATE..." + json);
+                PoolJoinedRoomData joinRoomData = JsonUtility.FromJson<PoolJoinedRoomData>(json);
+                EventBus.Invoke<PoolJoinedRoomData>(GameEvents.POOL_JOINED, joinRoomData);
                 break;
         }
     }
@@ -105,33 +122,33 @@ public class SocketHandler : Singleton<SocketHandler>
         DisconnectSocket();
     }
 
-    private void OnApplicationPause(bool paused)
-    {
-        if (paused)
-        {
-            Debug.Log("App Paused → Disconnecting socket...");
-            DisconnectSocket();
-        }
-        else
-        {
-            Debug.Log("App Resumed → Reconnecting socket...");
-            ConnectToServer();
-        }
-    }
+    //private void OnApplicationPause(bool paused)
+    //{
+    //    if (paused)
+    //    {
+    //        Debug.Log("App Paused → Disconnecting socket...");
+    //        DisconnectSocket();
+    //    }
+    //    else
+    //    {
+    //        Debug.Log("App Resumed → Reconnecting socket...");
+    //        ConnectToServer();
+    //    }
+    //}
 
-    private void OnApplicationFocus(bool hasFocus)
-    {
-        if (!hasFocus)
-        {
-            Debug.Log("App Lost Focus → Disconnect socket to save resources");
-            DisconnectSocket();
-        }
-        else
-        {
-            Debug.Log("App Focused → Reconnecting...");
-            ConnectToServer();
-        }
-    }
+    //private void OnApplicationFocus(bool hasFocus)
+    //{
+    //    if (!hasFocus)
+    //    {
+    //        Debug.Log("App Lost Focus → Disconnect socket to save resources");
+    //        DisconnectSocket();
+    //    }
+    //    else
+    //    {
+    //        Debug.Log("App Focused → Reconnecting...");
+    //        ConnectToServer();
+    //    }
+    //}
 
     public void DisconnectSocket()
     {
@@ -154,10 +171,39 @@ public struct EventEnvelope
 public enum EMIT_EVENT_TYPE
 {
     NONE,
-    WelcomeMessage
+    WelcomeMessage,
+    room_updated,
+    turn_timer_tick
 }
 [System.Serializable]
 public struct WelcomToGame
 {
     public string msg;
+}
+
+[System.Serializable]
+public class PoolJoinedRoomData
+{
+    public string roomId;
+    public PlayerData[] players;
+    public int playerCount;
+    public string message;
+    public string user;
+}
+
+[System.Serializable]
+public class PlayerData
+{
+    public string id;
+    public string username;
+    public long joinedAt;
+}
+
+[System.Serializable]
+public class TurnInfoData
+{
+    public int turn;
+    public string currentPlayer;
+    public int secondsRemaining;
+    public int totalTurns;
 }

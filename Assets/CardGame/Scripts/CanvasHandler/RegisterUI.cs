@@ -32,5 +32,6 @@ public class RegisterUI : MonoBehaviour
         ManageCanvas.Instance.ToggleVisiablityOfCanvasGroup(CanvasType.Lobby);
         Debug.Log("Register Success! Moving to Lobby...");
         LocalStorageManager.Save(phone);
+        GameManager.Instance.CurrentPlayerNumber = phone;
     }
 }
