@@ -548,6 +548,11 @@ namespace BestHTTP.SocketIO
                 this.IsOpen = true;
         }
 
+        public void On(object abilityTriggered)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
     }
 }

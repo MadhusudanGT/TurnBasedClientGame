@@ -22,6 +22,14 @@ public class GameManager : Singleton<GameManager>
         set => currentPlayerRoomID = value == null ? string.Empty : value;
     }
 
+    private int maxTurns = 0;
+
+    public int MaxTurns
+    {
+        get => maxTurns;
+        set => maxTurns = value == 0 ? 0 : value;
+    }
+
     private void Start()
     {
         string savedPhone = LocalStorageManager.Load();

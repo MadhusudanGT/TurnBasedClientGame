@@ -4,6 +4,7 @@ using SimpleJSON;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SocialPlatforms.Impl;
 
 public class SocketHandler : Singleton<SocketHandler>
 {
@@ -44,7 +45,23 @@ public class SocketHandler : Singleton<SocketHandler>
         Socket.On("initial_deck", InitDeck);
         Socket.On("error", ErrorMsg);
         Socket.On("game_state_updated", GetRoomStatus);
+        Socket.On("game_ended", GameEnded);
+        Socket.On("ability_triggered", AbilityTriggered);
         socketManager.Open();
+    }
+
+    private void AbilityTriggered(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        Debug.Log("Ability Triggered..." + json);
+    }
+
+    private void GameEnded(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        Debug.Log("Game Ended.." + json);
     }
 
     // ------------------------- EVENTS ----------------------------
@@ -75,6 +92,28 @@ public class SocketHandler : Singleton<SocketHandler>
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
         Debug.Log("Room status..." + json);
+        Root root = JsonUtility.FromJson<Root>(json);
+        Player[] players = root.gameState.players;
+        for (int i = 0; i < players.Length; i++)
+        {
+            if (players[i].id == GameManager.Instance?.CurrentPlayerNumber)
+            {
+                EventBus.Invoke<CardData[]>(GameEvents.UPDATED_HAND_CARDS_DATA, players[i].hand);
+                for (int j = 0; j < players[i].selectedCards.Length; j++)
+                {
+                    EventBus.Invoke<string>(GameEvents.SELECTED_CARD, players[i].selectedCards[j].instanceId);
+                    Debug.Log("Selected Instance Id..." + players[i].selectedCards[j].instanceId);
+                }
+
+                GameStatus status = new GameStatus();
+                status.turnLeft = root.gameState.currentTurn;
+                status.wallet = players[i].energy;
+                status.points = players[i].score;
+
+                EventBus.Invoke<GameStatus>(GameEvents.PLAYER_STATUS, status);
+                return;
+            }
+        }
     }
 
     private void InitDeck(Socket socket, Packet packet, object[] args)
@@ -90,6 +129,10 @@ public class SocketHandler : Singleton<SocketHandler>
             info.wallet = 0;
             info.points = 0;
             EventBus.Invoke<GameStatus>(GameEvents.PLAYER_STATUS, info);
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.MaxTurns = cardData.gameConfig.maxTurns;
+            }
         }
     }
     private void TurnTimerTick(Socket socket, Packet packet, object[] args)

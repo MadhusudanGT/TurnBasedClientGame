@@ -10,6 +10,7 @@ public class Card : MonoBehaviour
     [SerializeField] CardData cardData;
     [SerializeField] CardType cardType;
     [SerializeField] CanvasGroup cardCanvasGroup;
+
     private void OnEnable()
     {
         cardAction.onClick.AddListener(OnCardSelected);
@@ -27,6 +28,7 @@ public class Card : MonoBehaviour
     }
     public void InitCardData(CardData cardData, CardType cardType)
     {
+        cardImage.color = Color.white;
         this.cardData = cardData;
         cardName.SetText(this.cardData.name);
         cardPower.SetText("Power " + this.cardData.power);
@@ -41,7 +43,7 @@ public class Card : MonoBehaviour
     }
     public void OnCardSelected()
     {
-        if (this.cardType == CardType.DeckCard)
+        if (this.cardType == CardType.HandCad)
         {
             PlayCardRequest req = new PlayCardRequest
             {
@@ -53,10 +55,25 @@ public class Card : MonoBehaviour
             SocketHandler.Instance?.Emit("select_card", json);
         }
     }
+    [ContextMenu("Deselecte the card")]
+    public void OnCardDeSelected()
+    {
+        if (this.cardType == CardType.HandCad)
+        {
+            PlayCardRequest req = new PlayCardRequest
+            {
+                phoneNumber = GameManager.Instance.CurrentPlayerNumber,
+                roomId = GameManager.Instance?.CurrentPlayerRoomID,
+                cardId = cardData.instanceId
+            };
+            string json = JsonUtility.ToJson(req);
+            SocketHandler.Instance?.Emit("deselect_card", json);
+        }
+    }
 
     void OnSelecetedCard(string cardId)
     {
-        if (this.cardData.instanceId == cardId)
+        if (this.cardData.instanceId == cardId && cardType == CardType.HandCad)
         {
             cardImage.color = Color.green;
         }
@@ -93,18 +110,6 @@ public class DeckData
     public GameConfig gameConfig;
     public int points;
     public int energy;
-}
-
-[System.Serializable]
-public class CardData
-{
-    public string instanceId;
-    public int cardId;
-    public int id;
-    public string name;
-    public int cost;
-    public int power;
-    public string[] abilities;
 }
 
 [System.Serializable]
