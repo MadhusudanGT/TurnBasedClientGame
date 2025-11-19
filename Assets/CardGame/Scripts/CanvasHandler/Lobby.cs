@@ -6,13 +6,16 @@ using TMPro;
 using UnityEditor.Timeline.Actions;
 using UnityEngine;
 using UnityEngine.UI;
+using static UnityEditor.Progress;
 
 public class Lobby : MonoBehaviour
 {
     [SerializeField] Button joinPoolBtn;
-    [SerializeField] Transform avatarPrefab, parent;
+    [SerializeField] PlayerIcon avatarPrefab;
+    [SerializeField] Transform parent;
     [SerializeField] TMP_Text lobbyMsg;
     [SerializeField] List<string> lobbyPlayer;
+    [SerializeField] CanvasGroup matchMakingCanvasGroup;
 
     private void OnEnable()
     {
@@ -22,17 +25,25 @@ public class Lobby : MonoBehaviour
     private void OnDisable()
     {
         joinPoolBtn.onClick.RemoveListener(JoinThePool);
+        EventBus.Unsubscribe<PoolJoinedRoomData>(GameEvents.POOL_JOINED, CreateLobbyUserData);
     }
 
+    private void Start()
+    {
+        TooglMakeMatchMakingVisiable(false);
+    }
     void JoinThePool()
     {
+        if (!SocketHandler.Instance.Socket.IsOpen)
+        {
+            return;
+        }
         string savedPhone = LocalStorageManager.Load();
 
         if (savedPhone != null)
         {
             SocketHandler.Instance.Emit("join_pool", savedPhone.ToString());
             GameManager.Instance.CurrentPlayerNumber = savedPhone;
-            ManageCanvas.Instance.ToggleVisiablityOfCanvasGroup(CanvasType.Game);
         }
         else
         {
@@ -42,6 +53,7 @@ public class Lobby : MonoBehaviour
 
     public void CreateLobbyUserData(PoolJoinedRoomData poolJoinedRoomData)
     {
+        TooglMakeMatchMakingVisiable(true);
         lobbyMsg.SetText(poolJoinedRoomData.message);
 
         for (int i = 0; i < poolJoinedRoomData.players.Length; i++)
@@ -52,15 +64,33 @@ public class Lobby : MonoBehaviour
                 SpawnThePlayerLobbyIcon(poolJoinedRoomData.players[i].username);
             }
         }
+
+        if (lobbyPlayer.Count >= 2)
+        {
+            lobbyMsg.SetText("Loading the game!!");
+            Invoke(nameof(EnableGameScreen), 2f);
+        }
     }
 
     void SpawnThePlayerLobbyIcon(string userName)
     {
-        Transform prefab = Instantiate(avatarPrefab);
-        prefab.SetParent(parent);
-        prefab.localPosition = Vector3.zero;
-        prefab.localRotation = Quaternion.identity;
-        prefab.localScale = Vector3.one;
-        prefab.GetComponent<PlayerIcon>().InitPlayerData(userName);
+        PlayerIcon prefab = Instantiate(avatarPrefab);
+        prefab.transform.SetParent(parent);
+        prefab.transform.localPosition = Vector3.zero;
+        prefab.transform.localRotation = Quaternion.identity;
+        prefab.transform.localScale = Vector3.one;
+        prefab.InitPlayerData(userName);
+    }
+
+    void TooglMakeMatchMakingVisiable(bool isVisiable)
+    {
+        matchMakingCanvasGroup.alpha = isVisiable ? 1 : 0;
+        matchMakingCanvasGroup.interactable = isVisiable;
+        matchMakingCanvasGroup.blocksRaycasts = isVisiable;
+    }
+
+    void EnableGameScreen()
+    {
+        ManageCanvas.Instance.ToggleVisiablityOfCanvasGroup(CanvasType.Game);
     }
 }

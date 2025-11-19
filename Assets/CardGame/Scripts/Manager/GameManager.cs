@@ -6,12 +6,20 @@ public class GameManager : Singleton<GameManager>
     public bool isDebug = false;
     public string fileName = string.Empty;
 
-    public string currentPlayerNumber = string.Empty;
+    private string currentPlayerNumber = string.Empty;
 
     public string CurrentPlayerNumber
     {
         get => currentPlayerNumber;
         set => currentPlayerNumber = value == null ? string.Empty : value;
+    }
+
+    private string currentPlayerRoomID = string.Empty;
+
+    public string CurrentPlayerRoomID
+    {
+        get => currentPlayerRoomID;
+        set => currentPlayerRoomID = value == null ? string.Empty : value;
     }
 
     private void Start()

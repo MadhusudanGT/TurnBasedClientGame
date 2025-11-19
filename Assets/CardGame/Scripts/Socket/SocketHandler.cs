@@ -42,7 +42,8 @@ public class SocketHandler : Singleton<SocketHandler>
         Socket.On("room_updated", OnMessageReceived);
         Socket.On("turn_timer_tick", TurnTimerTick);
         Socket.On("initial_deck", InitDeck);
-
+        Socket.On("error", ErrorMsg);
+        Socket.On("game_state_updated", GetRoomStatus);
         socketManager.Open();
     }
 
@@ -62,10 +63,34 @@ public class SocketHandler : Singleton<SocketHandler>
     {
         MyDebug.LogError("⚠ Socket Error: " + args[0]);
     }
+
+    public void ErrorMsg(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        Debug.Log("Error Msg.." + json);
+    }
+    private void GetRoomStatus(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        Debug.Log("Room status..." + json);
+    }
+
     private void InitDeck(Socket socket, Packet packet, object[] args)
     {
-        var data = args[0] as IDictionary<string, object>;
-        Debug.Log("Event Type Init Deck!!! " + data);
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        DeckData cardData = JsonUtility.FromJson<DeckData>(json);
+        if (cardData.playerId == GameManager.Instance?.CurrentPlayerNumber)
+        {
+            EventBus.Invoke<DeckData>(GameEvents.DECK_CARDS_DATA, cardData);
+            GameStatus info = new GameStatus();
+            info.turnLeft = cardData.gameConfig.maxTurns;
+            info.wallet = 0;
+            info.points = 0;
+            EventBus.Invoke<GameStatus>(GameEvents.PLAYER_STATUS, info);
+        }
     }
     private void TurnTimerTick(Socket socket, Packet packet, object[] args)
     {
@@ -126,12 +151,12 @@ public class SocketHandler : Singleton<SocketHandler>
     //{
     //    if (paused)
     //    {
-    //        Debug.Log("App Paused → Disconnecting socket...");
+    //        //Debug.Log("App Paused → Disconnecting socket...");
     //        DisconnectSocket();
     //    }
     //    else
     //    {
-    //        Debug.Log("App Resumed → Reconnecting socket...");
+    //        //Debug.Log("App Resumed → Reconnecting socket...");
     //        ConnectToServer();
     //    }
     //}
@@ -140,12 +165,12 @@ public class SocketHandler : Singleton<SocketHandler>
     //{
     //    if (!hasFocus)
     //    {
-    //        Debug.Log("App Lost Focus → Disconnect socket to save resources");
+    //        //Debug.Log("App Lost Focus → Disconnect socket to save resources");
     //        DisconnectSocket();
     //    }
     //    else
     //    {
-    //        Debug.Log("App Focused → Reconnecting...");
+    //        //Debug.Log("App Focused → Reconnecting...");
     //        ConnectToServer();
     //    }
     //}
@@ -154,12 +179,11 @@ public class SocketHandler : Singleton<SocketHandler>
     {
         if (socketManager != null)
         {
-            Debug.Log("🔌 Disconnecting Socket.IO...");
+            //Debug.Log("🔌 Disconnecting Socket.IO...");
             socketManager.Close();  // Proper cleanup
             socketManager = null;
         }
     }
-
 }
 
 [Serializable]
