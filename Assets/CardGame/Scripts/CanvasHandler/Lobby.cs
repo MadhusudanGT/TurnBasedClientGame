@@ -21,13 +21,20 @@ public class Lobby : MonoBehaviour
     {
         joinPoolBtn.onClick.AddListener(JoinThePool);
         EventBus.Subscribe<PoolJoinedRoomData>(GameEvents.POOL_JOINED, CreateLobbyUserData);
+        EventBus.Subscribe<string>(GameEvents.RESET_GAME, ResetTheGame);
     }
     private void OnDisable()
     {
         joinPoolBtn.onClick.RemoveListener(JoinThePool);
         EventBus.Unsubscribe<PoolJoinedRoomData>(GameEvents.POOL_JOINED, CreateLobbyUserData);
+        EventBus.Unsubscribe<string>(GameEvents.RESET_GAME, ResetTheGame);
     }
 
+    void ResetTheGame(string msg)
+    {
+        lobbyPlayer.Clear();
+        TooglMakeMatchMakingVisiable(false);
+    }
     private void Start()
     {
         TooglMakeMatchMakingVisiable(false);

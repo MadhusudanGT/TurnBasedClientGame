@@ -7,4 +7,7 @@ public static class GameEvents
     public const string PLAYER_STATUS = "player_status";
     public const string UPDATED_DECK_CARDS_DATA = "updated_deck_cards_data";
     public const string UPDATED_HAND_CARDS_DATA = "updated_hand_cards_data";
+    public const string UPDATE_SCORE = "update_score";
+    public const string GAME_END = "game_end";
+    public const string RESET_GAME = "reset_game";
 }

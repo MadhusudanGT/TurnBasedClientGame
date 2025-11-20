@@ -12,6 +12,7 @@ public class GameCanvas : MonoBehaviour
     {
         EventBus.Subscribe<TurnInfoData>(GameEvents.TICK_TIMER_DATA, CountDownTimer);
         EventBus.Subscribe<GameStatus>(GameEvents.PLAYER_STATUS, PlayerGameStatus);
+        EventBus.Subscribe<PlayerScore>(GameEvents.UPDATE_SCORE, UpdateScore);
         submitBtn.onClick.AddListener(SubmitCard);
     }
 
@@ -19,6 +20,7 @@ public class GameCanvas : MonoBehaviour
     {
         EventBus.Unsubscribe<TurnInfoData>(GameEvents.TICK_TIMER_DATA, CountDownTimer);
         EventBus.Unsubscribe<GameStatus>(GameEvents.PLAYER_STATUS, PlayerGameStatus);
+        EventBus.Unsubscribe<PlayerScore>(GameEvents.UPDATE_SCORE, UpdateScore);
         submitBtn.onClick.RemoveListener(SubmitCard);
     }
 
@@ -36,6 +38,12 @@ public class GameCanvas : MonoBehaviour
         points.text = "Points : " + status.points;
     }
 
+    void UpdateScore(PlayerScore playerScore)
+    {
+        Debug.Log("Player Id..." + playerScore.playerId + "...Score..." + playerScore.score + "...energy.." + playerScore.energy);
+        points.SetText(playerScore.score.ToString());
+        wallet.SetText(playerScore.energy.ToString());
+    }
     void SubmitCard()
     {
         PlayCardRequest req = new PlayCardRequest
@@ -114,4 +122,20 @@ public class CardData : IEquatable<CardData>
     {
         return instanceId.GetHashCode();
     }
+}
+
+
+[System.Serializable]
+public class PlayerScore
+{
+    public string playerId;
+    public int score;
+    public int energy;
+}
+
+[System.Serializable]
+public class TurnScoreData
+{
+    public int turn;
+    public PlayerScore[] scores;
 }

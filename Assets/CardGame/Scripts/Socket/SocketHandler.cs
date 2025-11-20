@@ -47,21 +47,48 @@ public class SocketHandler : Singleton<SocketHandler>
         Socket.On("game_state_updated", GetRoomStatus);
         Socket.On("game_ended", GameEnded);
         Socket.On("ability_triggered", AbilityTriggered);
+        Socket.On("cardsPlayed", CardPlayed);
+        Socket.On("turn_resolved", TurnResloved);
         socketManager.Open();
+    }
+
+    private void TurnResloved(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+
+        TurnScoreData turnResloved = JsonUtility.FromJson<TurnScoreData>(json);
+        for (int i = 0; i < turnResloved.scores.Length; i++)
+        {
+            if (turnResloved.scores[i].playerId == GameManager.Instance?.CurrentPlayerNumber)
+            {
+                EventBus.Invoke<PlayerScore>(GameEvents.UPDATE_SCORE, turnResloved.scores[i]);
+                return;
+            }
+        }
+    }
+
+    private void CardPlayed(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        //Debug.Log("Card Played Triggered..." + json);
     }
 
     private void AbilityTriggered(Socket socket, Packet packet, object[] args)
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
-        Debug.Log("Ability Triggered..." + json);
+        //Debug.Log("Ability Triggered..." + json);
     }
 
     private void GameEnded(Socket socket, Packet packet, object[] args)
     {
+        ManageCanvas.Instance?.ToggleVisiablityOfCanvasGroup(CanvasType.GameOver);
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
-        Debug.Log("Game Ended.." + json);
+        GameEndedData gameEnded = JsonUtility.FromJson<GameEndedData>(json);
+        EventBus.Invoke<GameEndedData>(GameEvents.GAME_END, gameEnded);
     }
 
     // ------------------------- EVENTS ----------------------------
@@ -85,13 +112,12 @@ public class SocketHandler : Singleton<SocketHandler>
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
-        Debug.Log("Error Msg.." + json);
+        //Debug.Log("Error Msg.." + json);
     }
     private void GetRoomStatus(Socket socket, Packet packet, object[] args)
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
-        Debug.Log("Room status..." + json);
         Root root = JsonUtility.FromJson<Root>(json);
         Player[] players = root.gameState.players;
         for (int i = 0; i < players.Length; i++)
@@ -102,7 +128,6 @@ public class SocketHandler : Singleton<SocketHandler>
                 for (int j = 0; j < players[i].selectedCards.Length; j++)
                 {
                     EventBus.Invoke<string>(GameEvents.SELECTED_CARD, players[i].selectedCards[j].instanceId);
-                    Debug.Log("Selected Instance Id..." + players[i].selectedCards[j].instanceId);
                 }
 
                 GameStatus status = new GameStatus();
@@ -151,7 +176,6 @@ public class SocketHandler : Singleton<SocketHandler>
         EMIT_EVENT_TYPE type = (EMIT_EVENT_TYPE)Enum.Parse(typeof(EMIT_EVENT_TYPE), typeStr);
 
         string rawPayload = Json.Encode(data["payload"]);
-        Debug.Log("Event Type!!!" + typeStr);
         RouteMessage(type, rawPayload);
     }
 
@@ -161,10 +185,8 @@ public class SocketHandler : Singleton<SocketHandler>
         {
             case EMIT_EVENT_TYPE.WelcomeMessage:
                 WelcomToGame player = JsonUtility.FromJson<WelcomToGame>(json);
-                MyDebug.Log(player.msg);
                 break;
             case EMIT_EVENT_TYPE.room_updated:
-                MyDebug.LogGreen(type + "...ROOM UPDATE..." + json);
                 PoolJoinedRoomData joinRoomData = JsonUtility.FromJson<PoolJoinedRoomData>(json);
                 EventBus.Invoke<PoolJoinedRoomData>(GameEvents.POOL_JOINED, joinRoomData);
                 break;

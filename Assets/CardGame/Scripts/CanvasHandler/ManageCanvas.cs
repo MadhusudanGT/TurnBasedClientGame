@@ -40,5 +40,6 @@ public enum CanvasType
 {
     Register,
     Lobby,
-    Game
+    Game,
+    GameOver
 }
