@@ -29,7 +29,18 @@ public class GameManager : Singleton<GameManager>
         get => maxTurns;
         set => maxTurns = value == 0 ? 0 : value;
     }
-
+    private void OnEnable()
+    {
+        EventBus.Subscribe<string>(GameEvents.RESET_GAME, ResetData);
+    }
+    private void OnDisable()
+    {
+        EventBus.Unsubscribe<string>(GameEvents.RESET_GAME, ResetData);
+    }
+    void ResetData(string msg)
+    {
+        CurrentPlayerRoomID = string.Empty;
+    }
     private void Start()
     {
         string savedPhone = LocalStorageManager.Load();

@@ -21,7 +21,7 @@ public class SocketHandler : Singleton<SocketHandler>
 
     public void ConnectToServer()
     {
-        Debug.Log("Connecting to server: " + serverUrl);
+        //Debug.Log("Connecting to server: " + serverUrl);
 
         Uri uri = new Uri(serverUrl + "/socket.io/");
 
@@ -47,9 +47,37 @@ public class SocketHandler : Singleton<SocketHandler>
         Socket.On("game_state_updated", GetRoomStatus);
         Socket.On("game_ended", GameEnded);
         Socket.On("ability_triggered", AbilityTriggered);
-        Socket.On("cardsPlayed", CardPlayed);
+        Socket.On("cards_played", CardPlayed);
         Socket.On("turn_resolved", TurnResloved);
+        Socket.On("turn_started", TurnStated);
+        Socket.On("cards_data", CardsInfo);
         socketManager.Open();
+    }
+
+    private void CardsInfo(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        CardsListOfInfo cardInfo = JsonUtility.FromJson<CardsListOfInfo>(json);
+        for (int i = 0; i < cardInfo.cards.Count; i++)
+        {
+            EventBus.Invoke<CardInfo>(GameEvents.CARD_INFO, cardInfo.cards[i]);
+        }
+    }
+
+    private void TurnStated(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        CurrentTurnData currentTurnData = JsonUtility.FromJson<CurrentTurnData>(json);
+        if (currentTurnData.playerId == GameManager.Instance?.CurrentPlayerNumber)
+        {
+            //Debug.Log("Turn Started For Current Player..." + currentTurnData.playerId);
+            EventBus.Invoke<CurrentTurnData>(GameEvents.CURRENT_TURN, currentTurnData);
+            ManageCanvas.Instance?.ToggleVisiablityOfCanvasGroup(CanvasType.Game);
+            EventBus.Invoke<CardData[]>(GameEvents.UPDATED_DECK_CARDS_DATA, currentTurnData.deck);
+            EventBus.Invoke<CardData[]>(GameEvents.UPDATED_HAND_CARDS_DATA, currentTurnData.hand);
+        }
     }
 
     private void TurnResloved(Socket socket, Packet packet, object[] args)
@@ -72,14 +100,25 @@ public class SocketHandler : Singleton<SocketHandler>
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
-        //Debug.Log("Card Played Triggered..." + json);
+
+        CardsPlayedData cardPlayed = JsonUtility.FromJson<CardsPlayedData>(json);
+        if (cardPlayed.playerId == GameManager.Instance?.CurrentPlayerNumber)
+        {
+            EventBus.Invoke<CardData[]>(GameEvents.UPDATED_HAND_CARDS_DATA, cardPlayed.hand);
+            //Debug.Log("Card Played Triggered..." + json);
+        }
     }
 
     private void AbilityTriggered(Socket socket, Packet packet, object[] args)
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
-        //Debug.Log("Ability Triggered..." + json);
+        AbilityService abilityTrigered = JsonUtility.FromJson<AbilityService>(json);
+        if (abilityTrigered.PlayerId == GameManager.Instance?.CurrentPlayerNumber)
+        {
+            EventBus.Invoke<AbilityService>(GameEvents.ABILITY_TRIGGERED, abilityTrigered);
+            Debug.Log("Ability Triggered..." + abilityTrigered.PlayerId + "...Ability.." + abilityTrigered.Ability);
+        }
     }
 
     private void GameEnded(Socket socket, Packet packet, object[] args)
@@ -295,4 +334,15 @@ public class TurnInfoData
     public string currentPlayer;
     public int secondsRemaining;
     public int totalTurns;
+}
+
+[Serializable]
+public class CardsPlayedData
+{
+    public string playerId;
+    public string playerName;
+    public CardData[] hand;
+    public int totalCost;
+    public int energyUsed;
+    public int remainingEnergy;
 }

@@ -1,5 +1,7 @@
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Ocsp;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 using UnityEngine.UI;
 
 public class Card : MonoBehaviour
@@ -15,13 +17,22 @@ public class Card : MonoBehaviour
     {
         cardAction.onClick.AddListener(OnCardSelected);
         EventBus.Subscribe<string>(GameEvents.SELECTED_CARD, OnSelecetedCard);
+        EventBus.Subscribe<string>(GameEvents.RESET_GAME, ResetData);
     }
 
     private void OnDisable()
     {
         cardAction.onClick.RemoveListener(OnCardSelected);
         EventBus.Unsubscribe<string>(GameEvents.SELECTED_CARD, OnSelecetedCard);
+        EventBus.Unsubscribe<string>(GameEvents.RESET_GAME, ResetData);
     }
+    void ResetData(string msg)
+    {
+        cardData = null;
+        cardType = CardType.None;
+        CardsPool.Instance.Release(this);
+    }
+
     private void Start()
     {
         OnSelecetedCard("0");
@@ -119,16 +130,6 @@ public class GameConfig
     public int initialHandSize;
     public int initialDeckSize;
     public int maxEnergy;
-}
-
-public enum Abilities
-{
-    None,
-    GainPoints,
-    StealPoints,
-    BlockNextAttack,
-    DoublePower,
-    DrawExtraCard
 }
 
 public enum CardType

@@ -10,4 +10,7 @@ public static class GameEvents
     public const string UPDATE_SCORE = "update_score";
     public const string GAME_END = "game_end";
     public const string RESET_GAME = "reset_game";
+    public const string CURRENT_TURN = "current_turn";
+    public const string CARD_INFO = "card_info";
+    public const string ABILITY_TRIGGERED = "ability_triggered";
 }

@@ -8,11 +8,15 @@ public class RegisterUI : MonoBehaviour
     public TMP_InputField usernameInput;
     public Button submitButton;
 
-    private void Start()
+    private void OnEnable()
     {
         submitButton.onClick.AddListener(OnSubmit);
     }
 
+    private void OnDisable()
+    {
+        submitButton.onClick.RemoveListener(OnSubmit);
+    }
     private void OnSubmit()
     {
         string phone = phoneInput.text.Trim();

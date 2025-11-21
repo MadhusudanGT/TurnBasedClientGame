@@ -13,6 +13,7 @@ public class GameCanvas : MonoBehaviour
         EventBus.Subscribe<TurnInfoData>(GameEvents.TICK_TIMER_DATA, CountDownTimer);
         EventBus.Subscribe<GameStatus>(GameEvents.PLAYER_STATUS, PlayerGameStatus);
         EventBus.Subscribe<PlayerScore>(GameEvents.UPDATE_SCORE, UpdateScore);
+        EventBus.Subscribe<CurrentTurnData>(GameEvents.CURRENT_TURN, UpdateCurrentTurn);
         submitBtn.onClick.AddListener(SubmitCard);
     }
 
@@ -21,6 +22,7 @@ public class GameCanvas : MonoBehaviour
         EventBus.Unsubscribe<TurnInfoData>(GameEvents.TICK_TIMER_DATA, CountDownTimer);
         EventBus.Unsubscribe<GameStatus>(GameEvents.PLAYER_STATUS, PlayerGameStatus);
         EventBus.Unsubscribe<PlayerScore>(GameEvents.UPDATE_SCORE, UpdateScore);
+        EventBus.Unsubscribe<CurrentTurnData>(GameEvents.CURRENT_TURN, UpdateCurrentTurn);
         submitBtn.onClick.RemoveListener(SubmitCard);
     }
 
@@ -32,17 +34,14 @@ public class GameCanvas : MonoBehaviour
 
     private void PlayerGameStatus(GameStatus status)
     {
-        Debug.Log("Turns..." + status.turnLeft + "..Wallet.." + status.wallet + "...Points..." + status.points);
-        turns.text = "Turns : " + status.turnLeft + "/" + GameManager.Instance?.MaxTurns;
         wallet.text = "Wallet : " + status.wallet;
         points.text = "Points : " + status.points;
     }
 
     void UpdateScore(PlayerScore playerScore)
     {
-        Debug.Log("Player Id..." + playerScore.playerId + "...Score..." + playerScore.score + "...energy.." + playerScore.energy);
-        points.SetText(playerScore.score.ToString());
-        wallet.SetText(playerScore.energy.ToString());
+        points.SetText("Points : " + playerScore.score.ToString());
+        wallet.SetText("Wallet : " + playerScore.energy.ToString());
     }
     void SubmitCard()
     {
@@ -53,6 +52,10 @@ public class GameCanvas : MonoBehaviour
         };
         string json = JsonUtility.ToJson(req);
         SocketHandler.Instance?.Emit("end_turn", json);
+    }
+    void UpdateCurrentTurn(CurrentTurnData turnInfoData)
+    {
+        turns.text = "Turns : " + turnInfoData.turn + "/" + GameManager.Instance?.MaxTurns;
     }
 }
 
@@ -106,6 +109,7 @@ public class CardData : IEquatable<CardData>
     public int cost;
     public int power;
     public string[] abilities;
+    public string description;
 
     public bool Equals(CardData other)
     {
@@ -138,4 +142,15 @@ public class TurnScoreData
 {
     public int turn;
     public PlayerScore[] scores;
+}
+
+[System.Serializable]
+public struct CurrentTurnData
+{
+    public int turn;
+    public string playerId;
+    public string playerName;
+    public int energy;
+    public CardData[] deck;
+    public CardData[] hand;
 }

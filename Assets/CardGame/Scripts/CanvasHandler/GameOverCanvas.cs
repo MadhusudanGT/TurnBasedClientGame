@@ -1,3 +1,4 @@
+using Assets.CardGame.Scripts.Utils;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,10 +21,14 @@ public class GameOverCanvas : MonoBehaviour
         replayBtn.onClick.RemoveListener(ReplayBtnClicked);
     }
 
-    void ReplayBtnClicked()
+    [ContextMenu("Delete Room")]
+    public void ReplayBtnClicked()
     {
+        Utils.RemoveAllChildren(parent);
+        finalPlayerScores.Clear();
         ManageCanvas.Instance?.ToggleVisiablityOfCanvasGroup(CanvasType.Lobby);
         EventBus.Invoke<string>(GameEvents.RESET_GAME, "Play Again");
+        SocketHandler.Instance.Emit("leave_game", GameManager.Instance?.CurrentPlayerNumber);
     }
 
     void GameEndUpdateUI(GameEndedData winnerData)
@@ -62,8 +67,8 @@ public class GameOverCanvas : MonoBehaviour
         // 3. Release extra cards
         for (int i = values.Length; i < childCount; i++)
         {
-            Card extraChild = parent.GetChild(i).GetComponent<Card>();
-            CardsPool.Instance.Release(extraChild);
+            PlayerLeaderBoard extraChild = parent.GetChild(i).GetComponent<PlayerLeaderBoard>();
+            LeaderBoardPanekPool.Instance.Release(extraChild);
         }
     }
 

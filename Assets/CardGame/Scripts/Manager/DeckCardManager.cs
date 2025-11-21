@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using Assets.CardGame.Scripts.Utils;
+using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -14,13 +15,23 @@ public class DeckCardManager : MonoBehaviour
         EventBus.Subscribe<DeckData>(GameEvents.DECK_CARDS_DATA, InitDeckCardData);
         EventBus.Subscribe<CardData[]>(GameEvents.UPDATED_DECK_CARDS_DATA, AssignDeckCards);
         EventBus.Subscribe<CardData[]>(GameEvents.UPDATED_HAND_CARDS_DATA, AssignHandCards);
+        EventBus.Subscribe<string>(GameEvents.RESET_GAME, ResetData);
     }
 
     private void OnDisable()
     {
         EventBus.Unsubscribe<DeckData>(GameEvents.DECK_CARDS_DATA, InitDeckCardData);
+        EventBus.Unsubscribe<string>(GameEvents.RESET_GAME, ResetData);
     }
 
+    private void ResetData(string msg)
+    {
+        Utils.RemoveAllChildren(deckParent);
+        Utils.RemoveAllChildren(handParent);
+        handCardsData.Clear();
+        deckCardsData.Clear();
+        deckCardData = null;
+    }
     private void InitDeckCardData(DeckData deckCardData)
     {
         this.deckCardData = deckCardData;
