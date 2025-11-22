@@ -35,16 +35,24 @@ public class GameManager : Singleton<GameManager>
     }
     private void OnDisable()
     {
+        UnSubscribeFromEvents();
+    }
+    private void OnDestroy()
+    {
+        UnSubscribeFromEvents();
+    }
+    void UnSubscribeFromEvents()
+    {
         EventBus.Unsubscribe<string>(GameEvents.RESET_GAME, ResetData);
     }
     void ResetData(string msg)
     {
         CurrentPlayerRoomID = string.Empty;
+        CurrentPlayerRoomID = string.Empty;
     }
     private void Start()
     {
         string savedPhone = LocalStorageManager.Load();
-
         if (savedPhone != null)
         {
             CurrentPlayerNumber = savedPhone;
@@ -55,9 +63,8 @@ public class GameManager : Singleton<GameManager>
             ManageCanvas.Instance.ToggleVisiablityOfCanvasGroup(CanvasType.Register);
         }
     }
-
-    [ContextMenu("Clear Local Storage")]
-    public void ClearLocalStorage()
+    [ContextMenu("Clear Local Data")]
+    public void ClearLocalData()
     {
         LocalStorageManager.Delete();
     }

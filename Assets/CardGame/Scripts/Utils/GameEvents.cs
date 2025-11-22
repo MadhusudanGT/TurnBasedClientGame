@@ -13,4 +13,5 @@ public static class GameEvents
     public const string CURRENT_TURN = "current_turn";
     public const string CARD_INFO = "card_info";
     public const string ABILITY_TRIGGERED = "ability_triggered";
+    public const string BLOCKED_ATTACK = "blocked_Attack";
 }

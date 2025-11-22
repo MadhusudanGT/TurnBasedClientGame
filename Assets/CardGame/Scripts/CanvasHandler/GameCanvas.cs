@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public class GameCanvas : MonoBehaviour
 {
-    [SerializeField] TMP_Text seconds, currentPlayerOrNot, points, wallet, turns;
+    [SerializeField] TMP_Text seconds, currentPlayerOrNot, points, wallet, turns, userName;
     [SerializeField] Button submitBtn;
     private void OnEnable()
     {
@@ -17,7 +17,17 @@ public class GameCanvas : MonoBehaviour
         submitBtn.onClick.AddListener(SubmitCard);
     }
 
+    private void OnDestroy()
+    {
+        UnSubscribeFromEvents();
+    }
+
     private void OnDisable()
+    {
+        UnSubscribeFromEvents();
+    }
+
+    void UnSubscribeFromEvents()
     {
         EventBus.Unsubscribe<TurnInfoData>(GameEvents.TICK_TIMER_DATA, CountDownTimer);
         EventBus.Unsubscribe<GameStatus>(GameEvents.PLAYER_STATUS, PlayerGameStatus);
@@ -25,7 +35,10 @@ public class GameCanvas : MonoBehaviour
         EventBus.Unsubscribe<CurrentTurnData>(GameEvents.CURRENT_TURN, UpdateCurrentTurn);
         submitBtn.onClick.RemoveListener(SubmitCard);
     }
-
+    private void Start()
+    {
+        userName.SetText(GameManager.Instance.CurrentPlayerNumber);
+    }
     private void CountDownTimer(TurnInfoData turnInfoData)
     {
         seconds.SetText("Seconds : " + turnInfoData.secondsRemaining.ToString());
@@ -153,4 +166,11 @@ public struct CurrentTurnData
     public int energy;
     public CardData[] deck;
     public CardData[] hand;
+}
+
+[System.Serializable]
+public struct SelectedCadInfo
+{
+    public string uniqueID;
+    public CardData[] selectedCards;
 }

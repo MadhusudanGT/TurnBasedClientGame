@@ -9,10 +9,19 @@ public class PlayerLeaderBoard : MonoBehaviour
     {
         EventBus.Subscribe<string>(GameEvents.RESET_GAME, ResetData);
     }
+    private void OnDestroy()
+    {
+        UnSubscribeFromEvents();
+    }
     private void OnDisable()
+    {
+        UnSubscribeFromEvents();
+    }
+    void UnSubscribeFromEvents()
     {
         EventBus.Unsubscribe<string>(GameEvents.RESET_GAME, ResetData);
     }
+
     void ResetData(string msg)
     {
         LeaderBoardPanekPool.Instance.Release(this);

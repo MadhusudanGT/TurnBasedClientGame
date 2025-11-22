@@ -1,6 +1,8 @@
 using Assets.CardGame.Scripts.Utils;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class GameOverCanvas : MonoBehaviour
@@ -15,29 +17,43 @@ public class GameOverCanvas : MonoBehaviour
         replayBtn.onClick.AddListener(ReplayBtnClicked);
     }
 
+    private void OnDestroy()
+    {
+        UnSubscribeFromEvents();
+    }
     private void OnDisable()
+    {
+        UnSubscribeFromEvents();
+    }
+    void UnSubscribeFromEvents()
     {
         EventBus.Unsubscribe<GameEndedData>(GameEvents.GAME_END, GameEndUpdateUI);
         replayBtn.onClick.RemoveListener(ReplayBtnClicked);
+
     }
 
     [ContextMenu("Delete Room")]
     public void ReplayBtnClicked()
     {
-        Utils.RemoveAllChildren(parent);
-        finalPlayerScores.Clear();
-        ManageCanvas.Instance?.ToggleVisiablityOfCanvasGroup(CanvasType.Lobby);
-        EventBus.Invoke<string>(GameEvents.RESET_GAME, "Play Again");
         SocketHandler.Instance.Emit("leave_game", GameManager.Instance?.CurrentPlayerNumber);
+        //ManageCanvas.Instance?.ToggleVisiablityOfCanvasGroup(CanvasType.Lobby);
+        SceneManager.LoadScene("LoadingScene");
+        //Utils.RemoveAllChildren(parent);
+        //finalPlayerScores.Clear();
     }
 
     void GameEndUpdateUI(GameEndedData winnerData)
     {
+        for (int i = 0; i < winnerData.finalScores.Length; i++)
+        {
+            Debug.Log("Winner score.." + winnerData.finalScores[i].score + ".." + winnerData.finalScores[i].username);
+        }
         LeaderBoard(winnerData.finalScores);
     }
 
     public void LeaderBoard(FinalPlayerScore[] values)
     {
+        if(parent == null) { return; }
         int childCount = parent.childCount;
 
         // 1. Spawn missing cards
@@ -60,7 +76,7 @@ public class GameOverCanvas : MonoBehaviour
         {
             Transform child = parent.GetChild(i);
             PlayerLeaderBoard card = child.GetComponent<PlayerLeaderBoard>();
-            card.InitiRankData(i, values[i]);
+            card.InitiRankData(i + 1, values[i]);
             child.gameObject.SetActive(true);
         }
 
@@ -89,7 +105,7 @@ public class GameOverCanvas : MonoBehaviour
         prefab.transform.localPosition = Vector3.zero;
         prefab.transform.localRotation = Quaternion.identity;
         prefab.transform.localScale = Vector3.one;
-        prefab.InitiRankData(sloNo, data);
+        prefab.InitiRankData(sloNo + 1, data);
     }
 }
 

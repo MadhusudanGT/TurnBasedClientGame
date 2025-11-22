@@ -11,7 +11,7 @@ public class PlayerIcon : MonoBehaviour
     {
         EventBus.Subscribe<string>(GameEvents.RESET_GAME, ResetData);
     }
-    private void OnDisable()
+    private void OnDestroy()
     {
         EventBus.Unsubscribe<string>(GameEvents.RESET_GAME, ResetData);
     }

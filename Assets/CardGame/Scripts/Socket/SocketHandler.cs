@@ -46,18 +46,46 @@ public class SocketHandler : Singleton<SocketHandler>
         Socket.On("error", ErrorMsg);
         Socket.On("game_state_updated", GetRoomStatus);
         Socket.On("game_ended", GameEnded);
-        Socket.On("ability_triggered", AbilityTriggered);
-        Socket.On("cards_played", CardPlayed);
-        Socket.On("turn_resolved", TurnResloved);
+        Socket.On("ability_triggered", OnAbilityTriggered);
+        Socket.On("cards_played", OnCardPlayed);
+        Socket.On("turn_resolved", OnTurnResolved);
         Socket.On("turn_started", TurnStated);
         Socket.On("cards_data", CardsInfo);
+        Socket.On("block_applied", BlockApplied);
+        Socket.On("selected_cards", SelectedCardsData);
         socketManager.Open();
+    }
+
+    private void SelectedCardsData(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        Debug.Log("Selected Cards Data..." + json);
+        SelectedCadInfo selectedCardInfo = JsonUtility.FromJson<SelectedCadInfo>(json);
+        if (selectedCardInfo.uniqueID == GameManager.Instance.CurrentPlayerNumber)
+        {
+            for (int i = 0; i < selectedCardInfo.selectedCards.Length; i++)
+            {
+                EventBus.Invoke<string>(GameEvents.SELECTED_CARD, selectedCardInfo.selectedCards[i].instanceId);
+            }
+        }
+    }
+
+    private void BlockApplied(Socket socket, Packet packet, object[] args)
+    {
+        var dict = args[0] as IDictionary<string, object>;
+        string json = Json.Encode(dict);
+        Debug.Log("Block Applied..." + json);
+        BlockTheAttack blockedAttack = JsonUtility.FromJson<BlockTheAttack>(json);
+        string msg = blockedAttack.attackerId == GameManager.Instance.CurrentPlayerNumber ? "Attack Failed! The opponent defended using a shield." : "Attack defended successfully against the opponent using a shield!";
+        EventBus.Invoke<string>(GameEvents.BLOCKED_ATTACK, msg);
     }
 
     private void CardsInfo(Socket socket, Packet packet, object[] args)
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
+        Debug.Log("Cards Info..." + json);
         CardsListOfInfo cardInfo = JsonUtility.FromJson<CardsListOfInfo>(json);
         for (int i = 0; i < cardInfo.cards.Count; i++)
         {
@@ -69,6 +97,7 @@ public class SocketHandler : Singleton<SocketHandler>
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
+        Debug.Log("TurnStated..." + json);
         CurrentTurnData currentTurnData = JsonUtility.FromJson<CurrentTurnData>(json);
         if (currentTurnData.playerId == GameManager.Instance?.CurrentPlayerNumber)
         {
@@ -80,11 +109,11 @@ public class SocketHandler : Singleton<SocketHandler>
         }
     }
 
-    private void TurnResloved(Socket socket, Packet packet, object[] args)
+    private void OnTurnResolved(Socket socket, Packet packet, object[] args)
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
-
+        Debug.Log("OnTurnResolved..." + json);
         TurnScoreData turnResloved = JsonUtility.FromJson<TurnScoreData>(json);
         for (int i = 0; i < turnResloved.scores.Length; i++)
         {
@@ -96,11 +125,11 @@ public class SocketHandler : Singleton<SocketHandler>
         }
     }
 
-    private void CardPlayed(Socket socket, Packet packet, object[] args)
+    private void OnCardPlayed(Socket socket, Packet packet, object[] args)
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
-
+        Debug.Log("OnCardPlayed..." + json);
         CardsPlayedData cardPlayed = JsonUtility.FromJson<CardsPlayedData>(json);
         if (cardPlayed.playerId == GameManager.Instance?.CurrentPlayerNumber)
         {
@@ -109,15 +138,23 @@ public class SocketHandler : Singleton<SocketHandler>
         }
     }
 
-    private void AbilityTriggered(Socket socket, Packet packet, object[] args)
+    private void OnAbilityTriggered(Socket socket, Packet packet, object[] args)
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
+        Debug.Log("OnAbilityTriggered..." + json);
         AbilityService abilityTrigered = JsonUtility.FromJson<AbilityService>(json);
         if (abilityTrigered.PlayerId == GameManager.Instance?.CurrentPlayerNumber)
         {
             EventBus.Invoke<AbilityService>(GameEvents.ABILITY_TRIGGERED, abilityTrigered);
-            Debug.Log("Ability Triggered..." + abilityTrigered.PlayerId + "...Ability.." + abilityTrigered.Ability);
+        }
+        else
+        {
+            if (abilityTrigered.Ability == Abilities.StealPoints.ToString())
+            {
+                string msg = "Opponent Steel the point using Steal Attack!";
+                EventBus.Invoke<string>(GameEvents.BLOCKED_ATTACK, msg);
+            }
         }
     }
 
@@ -126,6 +163,7 @@ public class SocketHandler : Singleton<SocketHandler>
         ManageCanvas.Instance?.ToggleVisiablityOfCanvasGroup(CanvasType.GameOver);
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
+        Debug.Log("GameEnded..." + json);
         GameEndedData gameEnded = JsonUtility.FromJson<GameEndedData>(json);
         EventBus.Invoke<GameEndedData>(GameEvents.GAME_END, gameEnded);
     }
@@ -151,12 +189,15 @@ public class SocketHandler : Singleton<SocketHandler>
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
-        //Debug.Log("Error Msg.." + json);
+        Debug.Log("Error Msg.." + json);
+        ErrorMsg errorMsg = JsonUtility.FromJson<ErrorMsg>(json);
+        EventBus.Invoke<string>(GameEvents.BLOCKED_ATTACK, errorMsg.Msg);
     }
     private void GetRoomStatus(Socket socket, Packet packet, object[] args)
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
+        Debug.Log("GetRoomStatus..." + json);
         Root root = JsonUtility.FromJson<Root>(json);
         Player[] players = root.gameState.players;
         for (int i = 0; i < players.Length; i++)
@@ -184,6 +225,7 @@ public class SocketHandler : Singleton<SocketHandler>
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
+        Debug.Log("InitDeck..." + json);
         DeckData cardData = JsonUtility.FromJson<DeckData>(json);
         if (cardData.playerId == GameManager.Instance?.CurrentPlayerNumber)
         {
@@ -203,6 +245,7 @@ public class SocketHandler : Singleton<SocketHandler>
     {
         var dict = args[0] as IDictionary<string, object>;
         string json = Json.Encode(dict);
+        Debug.Log("TurnTimerTick..." + json);
         TurnInfoData turnInfoData = JsonUtility.FromJson<TurnInfoData>(json);
         EventBus.Invoke<TurnInfoData>(GameEvents.TICK_TIMER_DATA, turnInfoData);
     }
@@ -345,4 +388,16 @@ public class CardsPlayedData
     public int totalCost;
     public int energyUsed;
     public int remainingEnergy;
+}
+
+[System.Serializable]
+public struct BlockTheAttack
+{
+    public string opponentId;
+    public string attackerId;
+}
+[System.Serializable]
+public struct ErrorMsg
+{
+    public string Msg;
 }

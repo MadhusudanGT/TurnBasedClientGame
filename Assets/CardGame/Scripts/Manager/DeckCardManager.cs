@@ -18,12 +18,35 @@ public class DeckCardManager : MonoBehaviour
         EventBus.Subscribe<string>(GameEvents.RESET_GAME, ResetData);
     }
 
+    private void OnDestroy()
+    {
+        UnSubscribeFromEvents();
+    }
     private void OnDisable()
+    {
+        UnSubscribeFromEvents();
+    }
+    void UnSubscribeFromEvents()
     {
         EventBus.Unsubscribe<DeckData>(GameEvents.DECK_CARDS_DATA, InitDeckCardData);
         EventBus.Unsubscribe<string>(GameEvents.RESET_GAME, ResetData);
+        EventBus.Unsubscribe<CardData[]>(GameEvents.UPDATED_DECK_CARDS_DATA, AssignDeckCards);
+        EventBus.Unsubscribe<CardData[]>(GameEvents.UPDATED_HAND_CARDS_DATA, AssignHandCards);
     }
+    private void Start()
+    {
+        string savedPhone = LocalStorageManager.Load();
 
+        if (savedPhone != null)
+        {
+            GameManager.Instance.CurrentPlayerNumber = savedPhone;
+            ManageCanvas.Instance.ToggleVisiablityOfCanvasGroup(CanvasType.Lobby);
+        }
+        else
+        {
+            ManageCanvas.Instance.ToggleVisiablityOfCanvasGroup(CanvasType.Register);
+        }
+    }
     private void ResetData(string msg)
     {
         Utils.RemoveAllChildren(deckParent);
@@ -54,6 +77,8 @@ public class DeckCardManager : MonoBehaviour
 
     public void AssignDeckCards(CardData[] values)
     {
+        if (deckParent == null) { return; }
+
         int childCount = deckParent.childCount;
 
         // 1. Spawn missing cards
@@ -90,13 +115,9 @@ public class DeckCardManager : MonoBehaviour
 
     public void AssignHandCards(CardData[] values)
     {
-        int childCount = handParent.childCount;
+        if(handParent == null) { return; }
 
-        // Debug incoming values
-        for (int i = 0; i < values.Length; i++)
-        {
-            Debug.Log("Hand Values: " + values[i].instanceId);
-        }
+        int childCount = handParent.childCount;
 
         // 1. Spawn missing cards
         for (int i = childCount; i < values.Length; i++)

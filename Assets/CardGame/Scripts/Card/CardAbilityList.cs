@@ -12,14 +12,23 @@ public class CardAbilityList : Singleton<CardAbilityList>
         EventBus.Subscribe<CardInfo>(GameEvents.CARD_INFO, SpawnCardInfo);
     }
 
+    private void OnDestroy()
+    {
+        UnSubscribeFromEvents();
+    }
     private void OnDisable()
+    {
+        UnSubscribeFromEvents();
+    }
+    void UnSubscribeFromEvents()
     {
         EventBus.Unsubscribe<CardInfo>(GameEvents.CARD_INFO, SpawnCardInfo);
     }
-
     void SpawnCardInfo(CardInfo cardInfo)
     {
-        if (!cards.Contains(cardInfo))
+        if(parent == null) { return; }
+        bool isExists = cards.Exists(item => item.name == cardInfo.name.ToString());
+        if (!isExists)
         {
             cards.Add(cardInfo);
             AbilityUIPanel abilityPanel = Instantiate(prefab);
@@ -30,7 +39,7 @@ public class CardAbilityList : Singleton<CardAbilityList>
             abilityPanel.InitCardInfo(cardInfo);
         }
     }
-    public CardInfo GetCardInfo(Abilities ablitieName)
+    public CardInfo GetCardInfo(string ablitieName)
     {
         CardInfo cardInfo = cards.Find(item => item.name == ablitieName.ToString());
         return cardInfo;

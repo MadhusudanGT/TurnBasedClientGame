@@ -12,15 +12,23 @@ public class Card : MonoBehaviour
     [SerializeField] CardData cardData;
     [SerializeField] CardType cardType;
     [SerializeField] CanvasGroup cardCanvasGroup;
-
+    [SerializeField] bool isSelected = false;
     private void OnEnable()
     {
         cardAction.onClick.AddListener(OnCardSelected);
         EventBus.Subscribe<string>(GameEvents.SELECTED_CARD, OnSelecetedCard);
         EventBus.Subscribe<string>(GameEvents.RESET_GAME, ResetData);
     }
-
     private void OnDisable()
+    {
+        UnSubscribeTheEvents();
+    }
+    private void OnDestroy()
+    {
+        UnSubscribeTheEvents();
+    }
+
+    void UnSubscribeTheEvents()
     {
         cardAction.onClick.RemoveListener(OnCardSelected);
         EventBus.Unsubscribe<string>(GameEvents.SELECTED_CARD, OnSelecetedCard);
@@ -28,6 +36,7 @@ public class Card : MonoBehaviour
     }
     void ResetData(string msg)
     {
+        isSelected = false;
         cardData = null;
         cardType = CardType.None;
         CardsPool.Instance.Release(this);
@@ -39,6 +48,7 @@ public class Card : MonoBehaviour
     }
     public void InitCardData(CardData cardData, CardType cardType)
     {
+        isSelected = false;
         cardImage.color = Color.white;
         this.cardData = cardData;
         cardName.SetText(this.cardData.name);
@@ -56,41 +66,46 @@ public class Card : MonoBehaviour
     {
         if (this.cardType == CardType.HandCad)
         {
-            PlayCardRequest req = new PlayCardRequest
+            if (!isSelected)
             {
-                phoneNumber = GameManager.Instance.CurrentPlayerNumber,
-                roomId = GameManager.Instance?.CurrentPlayerRoomID,
-                cardId = cardData.instanceId
-            };
-            string json = JsonUtility.ToJson(req);
-            SocketHandler.Instance?.Emit("select_card", json);
+                PlayCardRequest req = new PlayCardRequest
+                {
+                    phoneNumber = GameManager.Instance.CurrentPlayerNumber,
+                    roomId = GameManager.Instance?.CurrentPlayerRoomID,
+                    cardId = cardData.instanceId
+                };
+                string json = JsonUtility.ToJson(req);
+                SocketHandler.Instance?.Emit("select_card", json);
+            }
+            else
+            {
+                OnCardDeSelected();
+            }
         }
     }
-    [ContextMenu("Deselecte the card")]
+
     public void OnCardDeSelected()
     {
-        if (this.cardType == CardType.HandCad)
+        PlayCardRequest req = new PlayCardRequest
         {
-            PlayCardRequest req = new PlayCardRequest
-            {
-                phoneNumber = GameManager.Instance.CurrentPlayerNumber,
-                roomId = GameManager.Instance?.CurrentPlayerRoomID,
-                cardId = cardData.instanceId
-            };
-            string json = JsonUtility.ToJson(req);
-            SocketHandler.Instance?.Emit("deselect_card", json);
-        }
+            phoneNumber = GameManager.Instance.CurrentPlayerNumber,
+            roomId = GameManager.Instance?.CurrentPlayerRoomID,
+            cardId = cardData.instanceId
+        };
+        string json = JsonUtility.ToJson(req);
+        SocketHandler.Instance?.Emit("deselect_card", json);
     }
 
     void OnSelecetedCard(string cardId)
     {
         if (this.cardData.instanceId == cardId && cardType == CardType.HandCad)
         {
+            isSelected = true;
             cardImage.color = Color.green;
         }
         else
         {
-            cardImage.color = Color.white;
+            //cardImage.color = Color.white;
         }
     }
 

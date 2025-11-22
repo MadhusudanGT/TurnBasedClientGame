@@ -12,8 +12,15 @@ public class RegisterUI : MonoBehaviour
     {
         submitButton.onClick.AddListener(OnSubmit);
     }
-
     private void OnDisable()
+    {
+            UnSubscribeFromEvents();
+    }
+    private void OnDestroy()
+    {
+        UnSubscribeFromEvents();
+    }
+    void UnSubscribeFromEvents()
     {
         submitButton.onClick.RemoveListener(OnSubmit);
     }

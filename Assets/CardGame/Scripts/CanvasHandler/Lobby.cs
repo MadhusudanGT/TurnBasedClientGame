@@ -1,13 +1,9 @@
 using Assets.CardGame.Scripts.Utils;
-using NUnit.Framework;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using TMPro;
-using UnityEditor.Timeline.Actions;
 using UnityEngine;
 using UnityEngine.UI;
-using static UnityEditor.Progress;
+
 
 public class Lobby : MonoBehaviour
 {
@@ -24,7 +20,15 @@ public class Lobby : MonoBehaviour
         EventBus.Subscribe<PoolJoinedRoomData>(GameEvents.POOL_JOINED, CreateLobbyUserData);
         EventBus.Subscribe<string>(GameEvents.RESET_GAME, ResetTheGame);
     }
+    private void OnDestroy()
+    {
+        UnSubscribeFromEvents();
+    }
     private void OnDisable()
+    {
+        UnSubscribeFromEvents();
+    }
+    void UnSubscribeFromEvents()
     {
         joinPoolBtn.onClick.RemoveListener(JoinThePool);
         EventBus.Unsubscribe<PoolJoinedRoomData>(GameEvents.POOL_JOINED, CreateLobbyUserData);
@@ -70,11 +74,16 @@ public class Lobby : MonoBehaviour
         if (lobbyPlayer.Count >= 2)
         {
             lobbyMsg.SetText("Loading the game!!");
-            Invoke(nameof(EnableGameScreen), 2f);
+            if (this != null && gameObject != null)
+            {
+                Invoke(nameof(EnableGameScreen), 2f);
+            }
+
         }
     }
     void TooglMakeMatchMakingVisiable(bool isVisiable)
     {
+        if (matchMakingCanvasGroup == null) { return; }
         matchMakingCanvasGroup.alpha = isVisiable ? 1 : 0;
         matchMakingCanvasGroup.interactable = isVisiable;
         matchMakingCanvasGroup.blocksRaycasts = isVisiable;
@@ -87,6 +96,8 @@ public class Lobby : MonoBehaviour
 
     public void MatchMakingIcons(PlayerData[] values)
     {
+        if (parent == null) { return; }
+
         int childCount = parent.childCount;
 
         // 1. Spawn missing cards
