@@ -1,10 +1,8 @@
 ﻿using BestHTTP.JSON;
 using BestHTTP.SocketIO;
-using SimpleJSON;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SocialPlatforms.Impl;
 
 public class SocketHandler : Singleton<SocketHandler>
 {
